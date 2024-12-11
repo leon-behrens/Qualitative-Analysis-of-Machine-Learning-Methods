@@ -1,0 +1,41 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        }
+    },
+    "handlers": {
+        "info_warning_handler": {
+            "class": "logging.FileHandler",
+            "level": "INFO",
+            "formatter": "default",
+            "filename": "/Users/leon/Uni/Master/Projektarbeit/Projektarbeit/info_warning.log",
+            "mode": "a"
+        },
+        "error_critical_handler": {
+            "class": "logging.FileHandler",
+            "level": "ERROR",
+            "formatter": "default",
+            "filename": "/Users/leon/Uni/Master/Projektarbeit/Projektarbeit/error_critical.log",
+            "mode": "a"
+        },
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "ERROR",
+            "formatter": "default",
+            "stream": "ext://sys.stdout"
+        }
+    },
+    "loggers": {
+        "": {
+            "level": "DEBUG",
+            "handlers": [
+                "info_warning_handler",
+                "error_critical_handler",
+                "console"
+            ]
+        }
+    }
+}
