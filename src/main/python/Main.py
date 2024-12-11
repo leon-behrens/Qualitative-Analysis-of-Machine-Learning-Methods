@@ -2,10 +2,13 @@ from imageCreation.GenerateSDImages import GenerateSDImages
 import torch
 from src.main.resources.CreateLogger import CreateLogger
 
+
 create_logger = CreateLogger("Main")
 logger = create_logger.return_logger()
 
-
+__pdoc__ = {
+    "main": False,  # Exclude this function from documentation
+}
 def main():
     logger.info("Main start")
     try:
