@@ -1,13 +1,13 @@
-# import definitions of classes and functions for learning by confusion
-from neuralNet.lbcUtils import *
 import pickle
 from IPython.display import clear_output
 import random
 import torch
+from fsspec.asyn import private
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
 from src.main.python.neuralNet.CustomDataset import CustomDataset
+from src.main.python.neuralNet.Training import Training
 from src.main.resources.CreateLogger import CreateLogger
 import pdoc
 
@@ -35,8 +35,21 @@ class MainAnalysis:
         self.eval_dataset = CustomDataset(directory=self.EVAL_FOLDER, transform = self.transform)
 
         # set num_workers and persistent_workers for faster dataloaders
-        self.train_loader = torch.utils.data.DataLoader(dataset=self.train_dataset, batch_size=32, shuffle=True)
-        self.eval_loader = torch.utils.data.DataLoader(dataset=self.eval_dataset, batch_size=32, shuffle=True)
+        self.train_loader = torch.utils.data.DataLoader(
+            self.train_dataset,
+            batch_size=32,
+            shuffle=True,
+            num_workers=4,  # Adjust based on your system's cores
+            persistent_workers=True  # Only works if num_workers > 0
+        )
+
+        self.eval_loader = torch.utils.data.DataLoader(
+            self.eval_dataset,
+            batch_size=32,
+            shuffle=False,
+            num_workers=4,
+            persistent_workers=True
+        )
 
         # number of categories in dataset
         self.n_categories_dataset = 150
@@ -52,3 +65,34 @@ class MainAnalysis:
         self.subset = list[range(self.n_categories_dataset -1)]
         self.n_categories = len(self.subset) + 1
 
+        # start training and evaluation
+        self.__training__()
+
+        # save results
+        self.__save_results__()
+
+
+
+
+    def __training__(self):
+        # start training and evaluation
+        self.training = Training(self.n_categories, self.n_categories_dataset, self.subset, self.learning_rate)
+        self.training.set_evaluation_parameters(self.eval_dataset, self.n_categories_dataset, self.ds_size)
+        self.training.set_training_parameters(self.train_dataset, self.record_every, self.batch_size)
+        self.training.train(self.epochs)
+
+    @private
+    def __save_results__(self):
+        SAVE_RESULTS_PATH = "/Users/leon/Uni/Master/Projektarbeit/Projektarbeit/src/main/resources/"
+
+        errs, train_losses, valid_losses = self.training.get_last_loop()
+        # save results
+        results = {'errs': errs, 'losses': train_losses, 'valid_losses': valid_losses}
+
+
+
+if __name__ == "__main__":
+    analysis = MainAnalysis()
+    for images, targets in analysis.train_loader:
+        print(images.shape)  # e.g., torch.Size([32, 3, 224, 224])
+        print(targets)
