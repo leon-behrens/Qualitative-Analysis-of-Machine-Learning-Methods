@@ -28,7 +28,7 @@ class TrainLoop:
         running_loss (float): Accumulated loss over the training loop.
     """
 
-    def __init__(self, dataloader, model, loss_fn, n_categories, device='cuda', subset=None):
+    def __init__(self, dataset, model, loss_fn, optimizer, device, subset, record_every):
         """
         Initializes the TrainLoop class.
 
@@ -44,24 +44,16 @@ class TrainLoop:
             RuntimeError: If an error occurs during the initialization of weights.
         """
         logger.info("Initializing TrainLoop starts")
-        self.dataloader = dataloader
+        self.dataset = dataset
         self.model = model
         self.loss_fn = loss_fn
-        self.n_categories = n_categories
+        self.optimizer = optimizer
         self.device = device
         self.subset = subset
+        self.losses = []
+        self.size = len(self.dataset)
+        self.record_every = record_every
 
-        try:
-            self.torch_weight = LBCWithLogitsLoss.confusion_weight(
-                self.n_categories, self.subset, device=self.device
-            ).view(1, -1)
-        except Exception as e:
-            logger.error(f"Error initializing confusion weights: {e}")
-            raise RuntimeError("Failed to initialize confusion weights.") from e
-
-        self.running_conf = torch.zeros(self.n_categories - 1, device=self.device)
-        self.running_loss = 0
-        logger.info("Initializing TrainLoop ends")
 
     def __call__(self):
         """
@@ -72,8 +64,7 @@ class TrainLoop:
                 - torch.Tensor: The running confusion error, scaled by 0.5.
                 - float: The total running loss.
 
-        Raises:
-            RuntimeError: If an error occurs during the training loop.
+
 
         Example:
             ```python
@@ -84,32 +75,17 @@ class TrainLoop:
             ```
         """
         logger.info("Training loop starts")
-        try:
-            with torch.no_grad():
-                for X, y in self.dataloader:
-                    X, y = X.to(self.device), y.to(self.device)
+        for batch, (X, y) in enumerate(self.dataset):
+            X, y = X.to(self.device), y.to(self.device)
+            pred = self.model(X)
+            Y = LBCLabel(y, self.subset, self.device).float()
+            loss = self.loss_fn(pred, Y)
 
-                    # Model prediction
-                    pred = self.model(X)
+            loss.backward()
+            self.optimizer.step()
+            self.optimizer.zero_grad()
 
-                    # Convert predictions and labels to boolean values
-                    pred_bool = torch.sigmoid(pred) > 0.5
-                    Y_bool = LBCLabel(y, self.subset)
-                    Y = Y_bool.float()
-
-                    # Calculate confusion error
-                    confusion = (
-                        1. / (1. - self.torch_weight) * (pred_bool != Y_bool) * (Y_bool == 1) +
-                        1. / (self.torch_weight) * (pred_bool != Y_bool) * (Y_bool == 0)
-                    ).sum(0)
-
-                    # Update running confusion and loss
-                    self.running_conf += confusion
-                    loss = self.loss_fn(pred, Y)
-                    self.running_loss += loss.item()
-            logger.info("Training loop ends")
-            return 0.5 * self.running_conf, self.running_loss
-
-        except Exception as e:
-            logger.error(f"Error during training loop: {e}")
-            raise RuntimeError("Training loop failed.") from e
+            if batch % self.record_every == 0:
+                loss, current = loss.item(), (batch + 1) * len(X)
+                self.losses.append(loss)
+        return self.losses
