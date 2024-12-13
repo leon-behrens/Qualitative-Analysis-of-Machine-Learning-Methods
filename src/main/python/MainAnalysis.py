@@ -68,9 +68,6 @@ class MainAnalysis:
         # start training and evaluation
         self.__training__()
 
-        # save results
-        self.__save_results__()
-
 
 
 
@@ -81,13 +78,6 @@ class MainAnalysis:
         self.training.set_training_parameters(self.train_dataset, self.record_every, self.batch_size)
         self.training.train(self.epochs)
 
-    @private
-    def __save_results__(self):
-        SAVE_RESULTS_PATH = "/Users/leon/Uni/Master/Projektarbeit/Projektarbeit/src/main/resources/"
-
-        errs, train_losses, valid_losses = self.training.get_last_loop()
-        # save results
-        results = {'errs': errs, 'losses': train_losses, 'valid_losses': valid_losses}
 
 
 
