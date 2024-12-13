@@ -3,11 +3,12 @@ from PIL import Image, UnidentifiedImageError
 import re
 import torch
 from src.main.resources.CreateLogger import CreateLogger
+from torch.utils.data import Dataset
 
 create_logger = CreateLogger("CustomDataset")
 logger = create_logger.return_logger()
 
-class CustomDataset:
+class CustomDataset(Dataset):
     """
     A custom dataset class for loading images and their corresponding labels based on filenames.
 
@@ -18,33 +19,34 @@ class CustomDataset:
         pattern (str): Regular expression pattern to extract year information from filenames.
     """
 
-    def __init__(self, directory, transform=None):
+    def __init__(self, directory, transform=None, extensions=('.png', '.jpg', '.jpeg', '.bmp')):
         """
         Initializes the CustomDataset.
 
         Args:
             directory (str): Path to the directory containing the image files.
             transform (callable, optional): A function/transform to apply to the images.
+            extensions (tuple): Allowed image file extensions.
         """
         logger.info("Initializing CustomDataset starts")
         self.directory = directory
         self.transform = transform
+        self.extensions = extensions
+
         try:
-            self.file_list = [f for f in os.listdir(self.directory)]
+            self.file_list = [f for f in os.listdir(self.directory) if f.lower().endswith(self.extensions)]
+            if not self.file_list:
+                logger.error("No valid image files found in the specified directory.")
+                raise FileNotFoundError("No valid image files found in the specified directory.")
         except FileNotFoundError as e:
             logger.error(f"Directory not found: {self.directory}")
             raise FileNotFoundError(f"Directory not found: {self.directory}") from e
+
         self.pattern = r'technology(-?\d+)_'
         logger.info("Initializing CustomDataset ends")
 
     def __len__(self):
-        """
-        Returns the number of files in the dataset.
-
-        Returns:
-            int: The number of image files in the dataset.
-        """
-        logger.info("__len__")
+        """Returns the number of files in the dataset."""
         return len(self.file_list)
 
     def filename_to_year(self, filename):
@@ -60,12 +62,10 @@ class CustomDataset:
         Raises:
             ValueError: If the year cannot be extracted from the filename.
         """
-        logger.info("__filename_to_year starts")
         match = re.search(self.pattern, filename)
         if match is None:
             logger.error(f"filename_to_year: could not get year from {filename}")
             raise ValueError(f"Could not get year from {filename}")
-        logger.info("__filename_to_year ends")
         return int(match.group(1)) + -1900
 
     def __getitem__(self, index):
@@ -77,13 +77,7 @@ class CustomDataset:
 
         Returns:
             tuple: A tuple containing the image and the corresponding target label.
-
-        Raises:
-            FileNotFoundError: If the image file does not exist.
-            ValueError: If there is an issue extracting the year from the filename.
-            RuntimeError: If the image cannot be loaded or converted.
         """
-        logger.info("__getitem__ starts")
         filename = self.file_list[index]
 
         # Load image
@@ -91,13 +85,7 @@ class CustomDataset:
         try:
             with open(img_path, 'rb') as f:
                 img = Image.open(f).convert('RGB')
-        except FileNotFoundError as e:
-            logger.error(f"Image file not found: {img_path}")
-            raise FileNotFoundError(f"Image file not found: {img_path}") from e
-        except UnidentifiedImageError as e:
-            logger.error(f"Cannot identify image file: {img_path}")
-            raise RuntimeError(f"Cannot identify image file: {img_path}") from e
-        except Exception as e:
+        except (FileNotFoundError, UnidentifiedImageError) as e:
             logger.error(f"Error loading image: {img_path}")
             raise RuntimeError(f"Error loading image: {img_path}") from e
 
@@ -118,5 +106,4 @@ class CustomDataset:
 
         target = torch.tensor(year, dtype=torch.int64)
 
-        logger.info("__getitem__ ends")
         return img, target
