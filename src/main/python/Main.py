@@ -17,7 +17,7 @@ def main():
         logger.info("device: {}".format(device))
 
         # Instantiate the GenerateSDImages class
-        createImages = GenerateSDImages(
+        create_images = GenerateSDImages(
             1,
             "Technology",
             device,
@@ -27,7 +27,7 @@ def main():
 
 
         # Generate images for the years 1900 to 1991
-        createImages.generate_n_pictures(1900, 1991)
+        create_images.generate_n_pictures(1900, 1991)
         logger.info("Images generated")
 
     except Exception as e:
