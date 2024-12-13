@@ -1,0 +1,92 @@
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environment
+.env/
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# pipenv and poetry
+Pipfile
+Pipfile.lock
+poetry.lock
+
+# Pytest and test caches
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Django stuff
+*.log
+*.pot
+*.mo
+*.pyc
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Flask stuff
+instance/
+.webassets-cache
+
+# MyPy
+.mypy_cache/
+dmypy.json
+dmypy.json.*/ 
+
+# VSCode
+.vscode/
+
+# JetBrains IDEs
+.idea/
+
+# macOS system files
+.DS_Store
+
+# Logs
+*.log
+
+# Generated documentation
+docs/_build/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Local config and secrets
+*.env
+.env.*
+.envrc
+
+# Code coverage reports
+htmlcov/
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Lock files
+yarn.lock
+package-lock.json
+
+# Docker
+docker-compose.override.yml
