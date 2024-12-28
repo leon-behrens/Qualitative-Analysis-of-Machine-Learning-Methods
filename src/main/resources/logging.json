@@ -11,14 +11,14 @@
             "class": "logging.FileHandler",
             "level": "INFO",
             "formatter": "default",
-            "filename": "/Users/leon/Uni/Master/Projektarbeit/Projektarbeit/info_warning.log",
+            "filename": "/Users/leon/Uni/Master/Projektarbeit/Qualitative-Analysis-of-Machine-Learning-Methods/info_warning.log",
             "mode": "a"
         },
         "error_critical_handler": {
             "class": "logging.FileHandler",
             "level": "ERROR",
             "formatter": "default",
-            "filename": "/Users/leon/Uni/Master/Projektarbeit/Projektarbeit/error_critical.log",
+            "filename": "/Users/leon/Uni/Master/Projektarbeit/Qualitative-Analysis-of-Machine-Learning-Methods/error_critical.log",
             "mode": "a"
         },
         "console": {
