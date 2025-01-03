@@ -3,7 +3,6 @@ import random
 import os
 
 from src.main.python.neuralNet.CustomDataset import CustomDataset
-from src.main.python.neuralNet.Training import Training
 from src.main.resources.CreateLogger import CreateLogger
 import pdoc
 
