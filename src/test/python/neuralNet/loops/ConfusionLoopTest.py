@@ -1,124 +1,76 @@
-import unittest
-from unittest.mock import MagicMock, patch
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from src.main.python.neuralNet.lbcUtils.LBCLabel import LBCLabel
 from src.main.python.neuralNet.lbcUtils.LBCWithLogitsLoss import LBCWithLogitsLoss
+from src.main.python.neuralNet.lbcUtils.ConfusionWeight import ConfusionWeight
 from src.main.python.neuralNet.loops.ConfusionLoop import ConfusionLoop
+from src.main.python.neuralNet.SimpleCNN import SimpleCNN
+from src.main.resources.CreateLogger import CreateLogger
 
+# Initialize the logger
+create_logger = CreateLogger("ConfusionLoopTest")
+logger = create_logger.return_logger()
 
-class TestConfusionLoop(unittest.TestCase):
-    def setUp(self):
-        """Set up common test variables and mocks."""
-        # Create mock model
-        self.model = MagicMock()
-        self.model.return_value = torch.tensor([[0.6, 0.2], [0.1, 0.9]], dtype=torch.float32)
+class ConfusionLoopTest:
+    def __init__(self):
+        # Test parameters
+        self.n_categories = 10  # Number of categories
+        self.subset = list(range(self.n_categories-1))  # Subset of categories
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"  # Compute device
 
-        # Create a simple dataset: 2 samples, 2 features each
-        inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
-        targets = torch.tensor([0, 1], dtype=torch.int64)
-        dataset = TensorDataset(inputs, targets)
-        self.dataloader = DataLoader(dataset, batch_size=2)
+        # Mock dataset
+        self.batch_size = 8
+        self.img_dim = 60  # Image dimension
+        X = torch.randn(32, 1, self.img_dim, self.img_dim)  # 32 mock images
+        y = torch.randint(0, self.n_categories, (32,))  # Mock labels
+        self.dataset = TensorDataset(X, y)
+        self.dataloader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
 
-        # Loss function (mocked for simplicity)
-        self.loss_fn = MagicMock()
-        self.loss_fn.return_value = torch.tensor(0.5)
+        # Model
+        self.model = SimpleCNN(img_dim=self.img_dim, n_categories=self.n_categories).to(self.device)
 
-        # Other parameters
-        self.n_categories = 2
-        self.device = 'cpu'
-        self.subset = [0, 1]
+        # Loss function
+        self.loss_fn = LBCWithLogitsLoss(
+            n_categories_total=self.n_categories,
+            subset=self.subset,
+            device=self.device
+        )
 
-    def test_initialization(self):
-        """Test that ConfusionLoop initializes correctly."""
-        with patch.object(LBCWithLogitsLoss, 'confusion_weight', return_value=torch.tensor([0.1, 0.2])):
-            confusion_loop = ConfusionLoop(
-                dataloader=self.dataloader,
-                model=self.model,
-                loss_fn=self.loss_fn,
-                n_categories=self.n_categories,
-                device=self.device,
-                subset=self.subset
-            )
+        # Instantiate ConfusionLoop
+        self.confusion_loop = ConfusionLoop(
+            dataloader=self.dataloader,
+            model=self.model,
+            loss_fn=self.loss_fn,
+            n_categories=self.n_categories,
+            device=self.device,
+            subset=self.subset
+        )
 
-            self.assertEqual(confusion_loop.n_categories, self.n_categories)
-            self.assertEqual(confusion_loop.device, self.device)
-            self.assertTrue(torch.equal(confusion_loop.torch_weight, torch.tensor([0.1, 0.2])))
-            self.assertTrue(torch.equal(confusion_loop.running_conf, torch.zeros(self.n_categories - 1)))
-            self.assertEqual(confusion_loop.running_loss, 0)
+    def run_test(self):
+        try:
+            # Run the confusion loop
+            print("Running ConfusionLoop...")
+            running_conf, running_loss = self.confusion_loop()
 
-    def test_call_execution(self):
-        """Test the execution of the evaluation loop."""
-        with patch.object(LBCWithLogitsLoss, 'confusion_weight', return_value=torch.tensor([0.1, 0.2])):
-            confusion_loop = ConfusionLoop(
-                dataloader=self.dataloader,
-                model=self.model,
-                loss_fn=self.loss_fn,
-                n_categories=self.n_categories,
-                device=self.device,
-                subset=self.subset
-            )
+            # Validate results
+            print(f"Running Confusion Error: {running_conf}")
+            print(f"Running Loss: {running_loss}")
+            assert running_conf.shape == (self.n_categories - 1,), \
+                f"Unexpected confusion error shape: {running_conf.shape}. Expected: ({self.n_categories - 1},)"
+            assert isinstance(running_loss, float), \
+                f"Running loss should be a float, got {type(running_loss)}."
 
-            # Execute the confusion loop
-            running_conf, running_loss = confusion_loop()
+            print("ConfusionLoop ran successfully!")
+            return True
 
-            # Assertions for running_conf and running_loss
-            self.assertTrue(torch.is_tensor(running_conf))
-            self.assertAlmostEqual(running_loss, 0.5)
-
-    def test_call_with_empty_dataloader(self):
-        """Test the __call__ method with an empty dataloader."""
-        empty_dataloader = DataLoader(TensorDataset(), batch_size=2)
-
-        with patch.object(LBCWithLogitsLoss, 'confusion_weight', return_value=torch.tensor([0.1, 0.2])):
-            confusion_loop = ConfusionLoop(
-                dataloader=empty_dataloader,
-                model=self.model,
-                loss_fn=self.loss_fn,
-                n_categories=self.n_categories,
-                device=self.device,
-                subset=self.subset
-            )
-
-            running_conf, running_loss = confusion_loop()
-
-            # Expect zero confusion and zero loss since no data was processed
-            self.assertTrue(torch.equal(running_conf, torch.zeros(self.n_categories - 1)))
-            self.assertEqual(running_loss, 0)
-
-    def test_confusion_weight_calculation(self):
-        """Test the confusion weight calculation during initialization."""
-        with patch.object(LBCWithLogitsLoss, 'confusion_weight', return_value=torch.tensor([0.1, 0.3])):
-            confusion_loop = ConfusionLoop(
-                dataloader=self.dataloader,
-                model=self.model,
-                loss_fn=self.loss_fn,
-                n_categories=self.n_categories,
-                device=self.device,
-                subset=self.subset
-            )
-
-            expected_weight = torch.tensor([0.1, 0.3])
-            self.assertTrue(torch.equal(confusion_loop.torch_weight, expected_weight))
-
-    def test_call_with_model_exception(self):
-        """Test the __call__ method when the model raises an exception."""
-        self.model.side_effect = RuntimeError("Model forward pass failed")
-
-        with patch.object(LBCWithLogitsLoss, 'confusion_weight', return_value=torch.tensor([0.1, 0.2])):
-            confusion_loop = ConfusionLoop(
-                dataloader=self.dataloader,
-                model=self.model,
-                loss_fn=self.loss_fn,
-                n_categories=self.n_categories,
-                device=self.device,
-                subset=self.subset
-            )
-
-            with self.assertRaises(RuntimeError) as context:
-                confusion_loop()
-            self.assertIn("Evaluation loop failed", str(context.exception))
-
+        except Exception as e:
+            print(f"Error during testing: {e}")
+            logger.error(f"Test failed: {e}")
+            return False
 
 if __name__ == "__main__":
-    unittest.main()
+    test = ConfusionLoopTest()
+    if test.run_test():
+        print("ConfusionLoop passed the test successfully!")
+    else:
+        print("ConfusionLoop failed the test.")

@@ -1,4 +1,5 @@
 # Import definitions of classes and functions for learning by confusion
+from src.main.python.neuralNet.lbcUtils.ConfusionWeight import ConfusionWeight
 from src.main.python.neuralNet.lbcUtils.LBCLabel import LBCLabel
 import torch
 from src.main.python.neuralNet.lbcUtils.LBCWithLogitsLoss import LBCWithLogitsLoss
@@ -27,7 +28,7 @@ class ConfusionLoop:
         running_loss (float): Accumulated loss over the evaluation loop.
     """
 
-    def __init__(self, dataloader, model, loss_fn, n_categories, device='cuda', subset=None):
+    def __init__(self, dataloader, model, loss_fn, n_categories, device="cpu", subset=None):
         """
         Initializes the ConfusionLoop class.
 
@@ -49,11 +50,16 @@ class ConfusionLoop:
         self.n_categories = n_categories
         self.device = device
         self.subset = subset
+        self.lbc_label = LBCLabel(subset=self.subset, device=self.device)
 
         try:
-            self.torch_weight = LBCWithLogitsLoss.confusion_weight(
-                self.n_categories, self.subset, device=self.device
-            ).view(1, -1)
+            confusion_weight = ConfusionWeight(
+                n_categories_total=self.n_categories,
+                subset=self.subset,
+                device=self.device
+            )
+            self.torch_weight = confusion_weight()
+
             logger.info("Initialized ConfusionLoop's try block successfully")
         except Exception as e:
             logger.error(f"Error initializing confusion weights: {e}")
@@ -74,19 +80,15 @@ class ConfusionLoop:
 
         Raises:
             RuntimeError: If an error occurs during the evaluation loop.
-
-        Example:
-            ```python
-            confusion_loop = ConfusionLoop(dataloader, model, loss_fn, n_categories=10, device='cpu')
-            running_conf, running_loss = confusion_loop()
-            print("Confusion Error:", running_conf)
-            print("Total Loss:", running_loss)
-            ```
         """
-        logger.info("__call_ starts")
+        logger.info("__call__ starts")
+
+
+
         try:
             with torch.no_grad():
                 for X, y in self.dataloader:
+                    logger.info(f"Dataloader output - X shape: {X.shape}, y: {y}")
                     X, y = X.to(self.device), y.to(self.device)
 
                     # Forward pass: get model predictions
@@ -94,22 +96,28 @@ class ConfusionLoop:
 
                     # Convert predictions and labels to boolean values
                     pred_bool = torch.sigmoid(pred) > 0.5
-                    Y_bool = LBCLabel(y, self.subset)
+
+                    if y is None or len(y) == 0:
+                        logger.error("Labels (y) are missing or empty.")
+                        raise ValueError("Labels (y) cannot be None or empty.")
+
+                    Y_bool = self.lbc_label(y)  # Pass 'y' to LBCLabel
                     Y = Y_bool.float()
 
                     # Calculate confusion error
                     confusion = (
-                        1. / (1. - self.torch_weight) * (pred_bool != Y_bool) * (Y_bool == 1) +
-                        1. / self.torch_weight * (pred_bool != Y_bool) * (Y_bool == 0)
+                            1. / (1. - self.torch_weight) * (pred_bool != Y_bool) * (Y_bool == 1) +
+                            1. / self.torch_weight * (pred_bool != Y_bool) * (Y_bool == 0)
                     ).sum(0)
 
                     # Update running confusion and loss
                     self.running_conf += confusion
                     loss = self.loss_fn(pred, Y)
                     self.running_loss += loss.item()
-            logger.info("__call_ ends")
+            logger.info("__call__ ends")
             return 0.5 * self.running_conf, self.running_loss
 
         except Exception as e:
             logger.error(f"Error during evaluation loop: {e}")
             raise RuntimeError("Evaluation loop failed.") from e
+

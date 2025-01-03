@@ -2,6 +2,7 @@ import torch
 import torchvision.models as models
 from torch.nn import Linear
 from src.main.resources.CreateLogger import CreateLogger
+from torchvision.models import ResNet50_Weights
 
 # Initialize the logger
 create_logger = CreateLogger("MyModel")
@@ -36,7 +37,7 @@ class MyModel:
         logger.info("Initializing MyModel starts")
         try:
             # Load the pretrained ResNet-50 model
-            self.model = models.resnet50(pretrained=True)
+            self.model = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
 
             # Get the number of input features for the final layer
             self.num_ftrs = self.model.fc.in_features
@@ -46,6 +47,7 @@ class MyModel:
 
             # Replace the final fully connected layer with a new layer
             self.model.fc = Linear(self.num_ftrs, self.n_separators)
+
         except Exception as e:
             logger.error(f"Error initializing MyModel: {e}")
             raise RuntimeError(f"Error initializing MyModel: {e}")
@@ -63,6 +65,7 @@ class MyModel:
         """
         logger.info("__call__ starts")
         try:
+            logger.info("__call__ ends")
             return self.model
         except Exception as e:
             logger.error(f"Error in __call__: {e}")

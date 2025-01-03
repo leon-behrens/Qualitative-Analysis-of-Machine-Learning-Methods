@@ -18,7 +18,7 @@ class LBCLabel:
         device (str): The computation device ('cuda' or 'cpu').
     """
 
-    def __init__(self, y, subset, device='cuda'):
+    def __init__(self, subset, device='cpu'):
         """
         Initializes the LBCLabel class.
 
@@ -31,12 +31,11 @@ class LBCLabel:
                 The device to perform computations on ('cuda' or 'cpu'). Default is 'cuda'.
         """
         logger.info("Initializing LBCLabel starts")
-        self.y = y
         self.subset = subset
         self.device = device
         logger.info("Initialized LBCLabel ends")
 
-    def __call__(self):
+    def __call__(self, y):
         """
         Converts label numbers into label vectors for the specified subset of categories.
 
@@ -61,11 +60,19 @@ class LBCLabel:
             ```
         """
         logger.info("__call__ starts")
+
+        if y is None:
+            logger.error("Input y is None.")
+            raise ValueError("Input y cannot be None.")
+        if not isinstance(y, torch.Tensor):
+            logger.error("Input y is not a torch.Tensor.")
+            raise ValueError("Input y must be a torch.Tensor.")
+
         try:
             # Convert subset to a tensor on the specified device and reshape for comparison
             subset_tensor = torch.tensor(self.subset, device=self.device).view(1, -1)
             # Compare the subset tensor with the label tensor
-            result = subset_tensor < self.y.view(-1, 1)
+            result = subset_tensor < y.view(-1, 1)
             logger.info("__call__ ends")
             return result
         except Exception as e:

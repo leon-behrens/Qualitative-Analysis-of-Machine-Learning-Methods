@@ -1,19 +1,25 @@
-import pandas as pd
-import os
-from transformers.utils import add_start_docstrings_to_model_forward
-from datetime import datetime
-from src.main.python.neuralNet.MyModel import MyModel
+import pickle
+from IPython.display import clear_output
 import random
 import torch
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
+import torch
+import matplotlib.pyplot as plt
+
+from src.main.python.neuralNet.MyModel import MyModel
 from src.main.python.neuralNet.lbcUtils.LBCWithLogitsLoss import LBCWithLogitsLoss
 from src.main.python.neuralNet.loops.ConfusionLoop import ConfusionLoop
 from src.main.python.neuralNet.loops.TrainLoop import TrainLoop
+from src.main.resources.CreateLogger import CreateLogger
+
+create_logger = CreateLogger("Training")
+logger = create_logger.return_logger()
 
 class Training:
     def __init__(self, n_categories, n_categories_dataset, subset, learning_rate):
+        logger.info("__init__ starts")
         # initialize model
         self.subset = subset
         self.my_model_instance = MyModel(n_categories=n_categories)

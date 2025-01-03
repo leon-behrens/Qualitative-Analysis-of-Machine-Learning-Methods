@@ -4,6 +4,7 @@ import torch
 
 from src.main.python.neuralNet.lbcUtils.LBCWithLogitsLoss import LBCWithLogitsLoss
 from src.main.resources.CreateLogger import CreateLogger
+import time
 
 # Create a logger instance
 create_logger = CreateLogger("ConfusionLoop")
@@ -28,7 +29,7 @@ class TrainLoop:
         running_loss (float): Accumulated loss over the training loop.
     """
 
-    def __init__(self, dataset, model, loss_fn, optimizer, device, subset, record_every):
+    def __init__(self, dataloader, model, loss_fn, optimizer, device = "cpu", subset = None, record_every = 10):
         """
         Initializes the TrainLoop class.
 
@@ -44,15 +45,16 @@ class TrainLoop:
             RuntimeError: If an error occurs during the initialization of weights.
         """
         logger.info("Initializing TrainLoop starts")
-        self.dataset = dataset
+        self.dataloader = dataloader
         self.model = model
         self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.device = device
         self.subset = subset
-        self.losses = []
-        self.size = len(self.dataset)
         self.record_every = record_every
+        self.losses = []
+        self.size = len(self.dataloader.dataset)
+        self.lbc_label = LBCLabel(subset=self.subset, device=self.device)
 
 
     def __call__(self):
@@ -75,17 +77,26 @@ class TrainLoop:
             ```
         """
         logger.info("Training loop starts")
-        for batch, (X, y) in enumerate(self.dataset):
-            X, y = X.to(self.device), y.to(self.device)
-            pred = self.model(X)
-            Y = LBCLabel(y, self.subset, self.device).float()
-            loss = self.loss_fn(pred, Y)
+        try:
+            for batch, (X, y) in enumerate(self.dataloader):
+                start_time = time.time()
+                X, y = X.to(self.device), y.to(self.device)
+                pred = self.model(X)
+                Y = self.lbc_label(y)
+                loss = self.loss_fn(pred, Y)
 
-            loss.backward()
-            self.optimizer.step()
-            self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+                self.optimizer.zero_grad()
 
-            if batch % self.record_every == 0:
-                loss, current = loss.item(), (batch + 1) * len(X)
-                self.losses.append(loss)
-        return self.losses
+                end_time = time.time()  # End timing the batch processing
+                print(f"Batch {batch}: Time taken - {end_time - start_time} seconds")
+                logger.info(f"Batch {batch}: Time taken - {end_time - start_time} seconds")
+
+                if batch % self.record_every == 0:
+                    loss, current = loss.item(), (batch + 1) * len(X)
+                    self.losses.append(loss)
+                return self.losses
+        except Exception as e:
+            logger.error(f"Error during training loop: {e}")
+            raise RuntimeError("Training loop failed.") from e

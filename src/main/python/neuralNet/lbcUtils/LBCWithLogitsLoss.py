@@ -1,4 +1,6 @@
 import torch
+
+from src.main.python.neuralNet.lbcUtils.ConfusionWeight import ConfusionWeight
 from src.main.resources.CreateLogger import CreateLogger
 
 create_logger = CreateLogger("SimpleCNN")
@@ -20,7 +22,7 @@ class LBCWithLogitsLoss:
         logsig (torch.nn.LogSigmoid): The LogSigmoid function used for computing the loss.
     """
 
-    def __init__(self, n_categories_total, subset, device='cuda'):
+    def __init__(self, n_categories_total, subset, device = "cpu"):
         """
         Initializes the LBCWithLogitsLoss class.
 
@@ -40,6 +42,7 @@ class LBCWithLogitsLoss:
         self.n_categories_total = n_categories_total
         self.subset = subset
         self.device = device
+        self.confusion_weight = ConfusionWeight(self.n_categories_total, self.subset, self.device)
 
         try:
             self.pos_weight = self.confusion_weight()
@@ -49,33 +52,6 @@ class LBCWithLogitsLoss:
             logger.error(f"Error during initialization: {e}")
             raise RuntimeError("Failed to initialize LBCWithLogitsLoss.") from e
 
-    def confusion_weight(self):
-        """
-        Calculates weights to correct for class imbalance based on the subset of categories.
-
-        The weights are computed as a fraction of the total number of categories. The weight
-        for each category is inversely proportional to the number of samples in that category.
-
-        Returns:
-            torch.Tensor: A tensor of positive weights for the specified subset of categories.
-                          The weights are normalized by the total number of categories.
-
-        Raises:
-            ValueError: If the subset contains invalid indices or if the tensor creation fails.
-
-        Example:
-            If `n_categories_total = 10` and `subset = [0, 2, 4]`, the output will be:
-            tensor([0.1, 0.3, 0.5], device='cuda')
-        """
-        logger.info("confusion_weight starts")
-        try:
-            weights = torch.arange(1, self.n_categories_total + 1,
-                                   device=self.device)[self.subset] / self.n_categories_total
-            logger.info("confusion_weight ends")
-            return weights
-        except Exception as e:
-            logger.error(f"Error calculating confusion weights: {e}")
-            raise ValueError("Failed to calculate confusion weights.") from e
 
     def __call__(self, logits, targets):
         """
@@ -112,8 +88,10 @@ class LBCWithLogitsLoss:
         """
         logger.info("__call__ starts")
         try:
+            targets = targets.float()
             loss = - (targets * self.logsig(logits) / (1. - self.pos_weight)
-                      + (1. - targets) * self.logsig(-logits) / self.pos_weight)
+                      + (1. - targets) * self.logsig(-logits) / (self.pos_weight)
+                      )
             logger.info("__call__ ends")
             return torch.mean(loss)
         except Exception as e:

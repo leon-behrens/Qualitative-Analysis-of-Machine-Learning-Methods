@@ -38,7 +38,7 @@ class SimpleCNN(nn.Module):
         logger.info("SimpleCNN model start initialisation")
         super(SimpleCNN, self).__init__()
         try:
-            self.pool = nn.AvgPool2d(kernel_size=2, stride=2)
+            self.pool = nn.AvgPool2d(2, 2)
             self.img_dim = img_dim
             self.n_hidden = n_hidden
             self.n_kernels = n_kernels
@@ -64,11 +64,11 @@ class SimpleCNN(nn.Module):
         """
         logger.info("Model forward starts")
         try:
-            x = self.pool(F.relu(self.conv1(x)))  # Apply first convolution, ReLU, and pooling
-            x = self.pool(F.relu(self.conv2(x)))  # Apply second convolution, ReLU, and pooling
-            x = x.view(-1, 2 * self.n_kernels * (self.img_dim // 4) * (self.img_dim // 4))  # Flatten the tensor
-            x = F.relu(self.fc1(x))  # Apply first fully connected layer with ReLU
-            x = self.fc2(x)          # Apply second fully connected layer (output layer)
+            x = self.pool(F.relu(self.conv1(x)))
+            x = self.pool(F.relu(self.conv2(x)))
+            x = x.view(-1, 2 * self.n_kernels * (self.img_dim // 4) * (self.img_dim // 4))
+            x = F.relu(self.fc1(x))
+            x = self.fc2(x)
             logger.info("Model forward pass is done")
             return x
         except Exception as e:

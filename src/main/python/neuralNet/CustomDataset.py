@@ -19,7 +19,7 @@ class CustomDataset(Dataset):
         pattern (str): Regular expression pattern to extract year information from filenames.
     """
 
-    def __init__(self, directory, transform=None, extensions=('.png', '.jpg', '.jpeg', '.bmp')):
+    def __init__(self, directory, transform=None):
         """
         Initializes the CustomDataset.
 
@@ -31,10 +31,13 @@ class CustomDataset(Dataset):
         logger.info("Initializing CustomDataset starts")
         self.directory = directory
         self.transform = transform
-        self.extensions = extensions
+        self.extensions = ('.png', '.jpg', '.jpeg', '.bmp')
 
         try:
-            self.file_list = [f for f in os.listdir(self.directory) if f.lower().endswith(self.extensions)]
+            self.file_list = [
+                f for f in os.listdir(self.directory)
+                if f.lower().endswith(self.extensions)
+            ]
             if not self.file_list:
                 logger.error("No valid image files found in the specified directory.")
                 raise FileNotFoundError("No valid image files found in the specified directory.")
@@ -42,14 +45,19 @@ class CustomDataset(Dataset):
             logger.error(f"Directory not found: {self.directory}")
             raise FileNotFoundError(f"Directory not found: {self.directory}") from e
 
-        self.pattern = r'technology(-?\d+)_'
+        self.pattern = r'[Tt]echnology(-?\d+)_'
         logger.info("Initializing CustomDataset ends")
 
     def __len__(self):
         """Returns the number of files in the dataset."""
-        return len(self.file_list)
+        logger.info("__len__")
+        try:
+            return len(self.file_list)
+        except TypeError as e:
+            logger.error(e)
+            raise e
 
-    def filename_to_year(self, filename):
+    def filename_to_year(self, filename, pattern):
         """
         Extracts the year from the filename using a regex pattern.
 
@@ -62,11 +70,14 @@ class CustomDataset(Dataset):
         Raises:
             ValueError: If the year cannot be extracted from the filename.
         """
-        match = re.search(self.pattern, filename)
+        match = re.search(pattern, filename)
         if match is None:
             logger.error(f"filename_to_year: could not get year from {filename}")
             raise ValueError(f"Could not get year from {filename}")
         return int(match.group(1)) + -1900
+
+
+
 
     def __getitem__(self, index):
         """
@@ -99,7 +110,7 @@ class CustomDataset(Dataset):
 
         # Load label and convert to tensor
         try:
-            year = self.filename_to_year(filename)
+            year = self.filename_to_year(filename, self.pattern)
         except ValueError as e:
             logger.error(f"Error extracting year from filename: {filename}")
             raise ValueError(f"Error extracting year from filename: {filename}") from e

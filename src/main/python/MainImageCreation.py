@@ -27,7 +27,7 @@ def main():
 
 
         # Generate images for the years 1900 to 1991
-        create_images.generate_n_pictures(1900, 1991)
+        create_images.generate_n_pictures(1970, 1971)
         logger.info("Images generated")
 
     except Exception as e:
