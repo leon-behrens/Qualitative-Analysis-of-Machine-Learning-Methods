@@ -1,8 +1,7 @@
 import torch
 import torchvision.models as models
 from torch.nn import Linear
-from src.main.resources.CreateLogger import CreateLogger
-from torchvision.models import ResNet50_Weights
+from main.resources.CreateLogger import CreateLogger
 
 # Initialize the logger
 create_logger = CreateLogger("MyModel")
@@ -23,7 +22,7 @@ class MyModel:
         n_separators (int): The number of grid separators for the final layer.
     """
 
-    def __init__(self, n_categories=130):
+    def __init__(self, n_categories=130, device = "cuda"):
         """
         Initializes the MyModel class by loading a pretrained ResNet-50 model
         and replacing its final fully connected layer.
@@ -35,18 +34,26 @@ class MyModel:
             RuntimeError: If there is an error during model loading or layer replacement.
         """
         logger.info("Initializing MyModel starts")
+        self.device = torch.device(device)
+        self.pretrained_path = "/scicore/home/bruder/behleo00/PA/src/main/resources/resNet/resNet50-pretrained.pth"
         try:
             # Load the pretrained ResNet-50 model
-            self.model = models.resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+            self.model = models.resnet50()
+            self.model.load_state_dict(torch.load(self.pretrained_path, weights_only=True))
+            logger.info(f"Loading pretrained weights from {self.pretrained_path}")
 
             # Get the number of input features for the final layer
             self.num_ftrs = self.model.fc.in_features
+            logger.info(f"Number of input features for final layer: {self.num_ftrs}")
 
             # Calculate the number of separators
             self.n_separators = n_categories - 1
+            logger.info(f"Number of grid separators: {self.n_separators}")
 
             # Replace the final fully connected layer with a new layer
             self.model.fc = Linear(self.num_ftrs, self.n_separators)
+            
+            self.model.to(self.device)
 
         except Exception as e:
             logger.error(f"Error initializing MyModel: {e}")

@@ -2,18 +2,15 @@ import shutil
 import random
 import os
 
-from src.main.python.neuralNet.CustomDataset import CustomDataset
-from src.main.resources.CreateLogger import CreateLogger
-import pdoc
+from main.python.neuralNet.CustomDataset import CustomDataset
+from main.resources.CreateLogger import CreateLogger
+
 
 
 create_logger = CreateLogger("MainDistributePictures")
 logger = create_logger.return_logger()
 
-__pdoc__ = {
-    "MainAnalysis": False,   # Exclude this class from documentation
-    "__init__": False,  # Exclude this function from documentation
-}
+
 
 class MainDistributePictures:
     def __init__(self, source_folder, destination_folder, train_ratio=0.8):
@@ -67,7 +64,11 @@ class MainDistributePictures:
         self.split_images()
 
 if __name__ == "__main__":
-    distribution = MainDistributePictures()
+    distribution = MainDistributePictures(
+        source_folder="/scicore/home/bruder/behleo00/PA/src/main/resources/data/pictures/SDImages",  # Replace with the actual source folder path
+        destination_folder="/scicore/home/bruder/behleo00/PA/src/main/resources/data/pictures/",  # Replace with the actual destination folder path
+        train_ratio=0.7  # 70% images for training, 30% for testing
+    )
     distribution()
 
 

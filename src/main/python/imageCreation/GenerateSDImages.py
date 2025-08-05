@@ -1,7 +1,7 @@
 import os
 import torch
 from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
-from src.main.resources.CreateLogger import CreateLogger
+from main.resources.CreateLogger import CreateLogger
 
 create_logger = CreateLogger("GenerateSDImages")
 logger = create_logger.return_logger()
@@ -89,3 +89,5 @@ class GenerateSDImages:
 
         logger.info("generate_n_pictures finished.")
 
+if __name__ == '__main__':
+    creatImages = GenerateSDImages(1, "Technology", "cpu", "./test")

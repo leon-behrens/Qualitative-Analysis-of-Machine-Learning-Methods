@@ -58,8 +58,8 @@ class PictureSorter:
 if __name__ == "__main__":
     # Example usage
     sorter = PictureSorter(
-        source_folder="/Users/leon/Uni/Master/Projektarbeit/SDImages/AugmentedImages",  # Replace with the actual source folder path
-        destination_folder="/Users/leon/Uni/Master/Projektarbeit/Qualitative-Analysis-of-Machine-Learning-Methods/src/main/resources/data/pictures",  # Replace with the actual destination folder path
+        source_folder="/scicore/home/bruder/behleo00/PA/src/main/resources/data/pictures/SDImages",  # Replace with the actual source folder path
+        destination_folder="/scicore/home/bruder/behleo00/PA/src/main/resources/data/pictures/",  # Replace with the actual destination folder path
         train_ratio=0.8  # 80% images for training, 20% for testing
     )
     sorter()

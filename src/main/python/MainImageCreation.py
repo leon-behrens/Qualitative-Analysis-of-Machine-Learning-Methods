@@ -1,33 +1,37 @@
-from imageCreation.GenerateSDImages import GenerateSDImages
+from main.python.imageCreation.GenerateSDImages import GenerateSDImages
 import torch
-from src.main.resources.CreateLogger import CreateLogger
-
+from main.resources.CreateLogger import CreateLogger
+import sys
 
 create_logger = CreateLogger("Main")
 logger = create_logger.return_logger()
 
-__pdoc__ = {
-    "main": False,  # Exclude this function from documentation
-}
 def main():
     logger.info("Main start")
     try:
-        # Check if CUDA is available and set the device accordingly
+        # Get run ID from command-line arguments
+        run_id = int(sys.argv[1])
+
+        # Calculate year range based on run ID
+        start_year = 1900 + run_id
+        end_year = start_year + 1
+        logger.info(f"Processing run_id: {run_id}, years: {start_year}-{end_year}")
+
+        # Check if CUDA is available and set the device
         device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info("device: {}".format(device))
 
         # Instantiate the GenerateSDImages class
         create_images = GenerateSDImages(
-            1,
+            3 * 27,
             "Technology",
             device,
-            "/Users/leon/Uni/Master/Projektarbeit/Projektarbeit/SDImages"
+            "/scicore/home/bruder/behleo00/PA/src/main/resources/data/pictures/SDImages"
         )
         logger.info("Instance of GenerateSDImages created")
 
-
-        # Generate images for the years 1900 to 1991
-        create_images.generate_n_pictures(1970, 1971)
+        # Generate images for the year range
+        create_images.generate_n_pictures(start_year, end_year)
         logger.info("Images generated")
 
     except Exception as e:

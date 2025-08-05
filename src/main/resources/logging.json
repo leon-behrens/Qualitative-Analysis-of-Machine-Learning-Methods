@@ -11,14 +11,15 @@
             "class": "logging.FileHandler",
             "level": "INFO",
             "formatter": "default",
-            "filename": "/Users/leon/Uni/Master/Projektarbeit/Qualitative-Analysis-of-Machine-Learning-Methods/info_warning.log",
+            "filename": "/scicore/home/bruder/behleo00/PA/info_warning.log",
             "mode": "a"
         },
+
         "error_critical_handler": {
             "class": "logging.FileHandler",
             "level": "ERROR",
             "formatter": "default",
-            "filename": "/Users/leon/Uni/Master/Projektarbeit/Qualitative-Analysis-of-Machine-Learning-Methods/error_critical.log",
+            "filename": "/scicore/home/bruder/behleo00/PA/error_critical.log",
             "mode": "a"
         },
         "console": {
