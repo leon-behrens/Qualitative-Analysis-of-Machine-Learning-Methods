@@ -90,3 +90,6 @@ package-lock.json
 
 # Docker
 docker-compose.override.yml
+
+# Images
+*.png
